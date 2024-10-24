@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3 en Raya</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: url('assets/background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Altura completa */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        /* Botones decorados */
+        .decorated-btn {
+            background-color: #4CAF50; /* Verde */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .decorated-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.1);
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .cell {
+            background-color: #FAFAFA; /* Fondo blanco para las celdas */
+            border: 2px solid #4CAF50;
+            font-size: 2em;
+            color: black; /* Cambiar el color de X y O a negro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .cell:hover {
+            background-color: #D5D5D5; /* Color gris suave al pasar el ratón */
+        }
+
+        #game-result {
+            font-size: 2em;
+            margin: 20px;
+            color: black; /* Texto negro para el resultado */
+        }
+
+        #restart-button,
+        #menu-button {
+            margin: 10px;
+        }
+
+        /* Estilos para el menú de ajustes */
+        #settings-menu {
+            background-color: white;
+            color: black;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        input[type="range"] {
+            width: 300px;
+            margin: 10px 0;
+        }
+
+        label {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: black; /* Texto negro para las etiquetas de ajustes */
+        }
+
+        /* Fondo del juego */
+        #game-screen {
+            background-color: #81C784; /* Color verde para el fondo del juego */
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 50px;
+            height: 100vh; /* Altura completa */
+        }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de inicio -->
+    <div id="start-screen">
+        <h1>Bienvenido al 3 en Raya</h1>
+        <button id="play-button" class="decorated-btn">Jugar</button>
+    </div>
+
+    <!-- Menú principal -->
+    <div id="main-menu" class="hidden">
+        <h2>Menú Principal</h2>
+        <button id="two-players-button" class="decorated-btn">2 Jugadores</button>
+        <button id="bot-button" class="decorated-btn">Bot</button>
+        <button id="settings-button" class="decorated-btn">Ajustes</button>
+    </div>
+
+    <!-- Selección de símbolo -->
+    <div id="symbol-selection" class="hidden">
+        <h2>Selecciona tu símbolo</h2>
+        <button id="select-x" class="decorated-btn">X</button>
+        <button id="select-o" class="decorated-btn">O</button>
+    </div>
+
+    <!-- Menú de ajustes -->
+    <div id="settings-menu" class="hidden">
+        <h2>Ajustes</h2>
+        <div>
+            <label for="music-volume">Volumen de la música:</label>
+            <input type="range" id="music-volume" min="0" max="100" value="50">
+        </div>
+        <div>
+            <label for="sfx-volume">Volumen de efectos:</label>
+            <input type="range" id="sfx-volume" min="0" max="100" value="50">
+        </div>
+        <button id="back-button" class="decorated-btn">Volver al Menú</button>
+    </div>
+
+    <!-- Pantalla del juego -->
+    <div id="game-screen" class="hidden">
+        <h2>¡A jugar!</h2>
+        <div id="game-board" class="hidden">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <div id="game-result" class="hidden"></div>
+        <button id="restart-button" class="decorated-btn hidden">Reiniciar</button>
+        <button id="menu-button" class="decorated-btn hidden">Menú Principal</button>
+    </div>
+
+    <!-- Música de fondo y efectos de sonido -->
+    <audio id="background-music" src="assets/music.mp3" loop></audio>
+    <audio id="click-sound" src="assets/click.mp3"></audio>
+    <audio id="win-sound" src="assets/win.mp3"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const playButton = document.getElementById('play-button');
+            const mainMenu = document.getElementById('main-menu');
+            const startScreen = document.getElementById('start-screen');
+            const twoPlayersButton = document.getElementById('two-players-button');
+            const botButton = document.getElementById('bot-button');
+            const gameScreen = document.getElementById('game-screen');
+            const gameBoard = document.getElementById('game-board');
+            const restartButton = document.getElementById('restart-button');
+            const menuButton = document.getElementById('menu-button');
+            const gameResult = document.getElementById('game-result');
+            const backgroundMusic = document.getElementById('background-music');
+            const clickSound = document.getElementById('click-sound');
+            const winSound = document.getElementById('win-sound');
+            const settingsButton = document.getElementById('settings-button');
+            const settingsMenu = document.getElementById('settings-menu');
+            const backButton = document.getElementById('back-button');
+            const musicVolume = document.getElementById('music-volume');
+            const sfxVolume = document.getElementById('sfx-volume');
+            const symbolSelection = document.getElementById('symbol-selection');
+            const selectX = document.getElementById('select-x');
+            const selectO = document.getElementById('select-o');
+
+            let currentPlayer = 'X';
+            let board = ['', '', '', '', '', '', '', '', ''];
+            let isGameActive = true;
+            let isBotMode = false;
+
+            function resetGame() {
+                board = ['', '', '', '', '', '', '', '', ''];
+                isGameActive = true;
+                gameResult.classList.add('hidden');
+                restartButton.classList.add('hidden');
+                menuButton.classList.add('hidden');
+                Array.from(gameBoard.children).forEach(cell => {
+                    cell.textContent = '';
+                });
+            }
+
+            function checkWinner() {
+                const winningConditions = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontales
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Verticales
+                    [0, 4, 8], [2, 4, 6] // Diagonales
+                ];
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return board[a];
+                    }
+                }
+                return board.includes('') ? null : 'Empate';
+            }
+
+            function playerMove(index) {
+                if (board[index] === '' && isGameActive) {
+                    board[index] = currentPlayer;
+                    renderBoard();
+                    clickSound.play(); // Reproduce sonido de clic
+                    const winner = checkWinner();
+                    if (winner) {
+                        isGameActive = false;
+                        endGame(winner);
+                    } else {
+                        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                        if (isBotMode && currentPlayer === 'O') {
+                            setTimeout(botMove, 1000); // Esperar 1 segundo antes de que el bot juegue
+                        }
+                    }
+                }
+            }
+
+            function renderBoard() {
+                Array.from(gameBoard.children).forEach((cell, index) => {
+                    cell.textContent = board[index];
+                });
+            }
+
+            function endGame(winner) {
+                gameResult.textContent = winner === 'Empate' ? 'Es un empate!' : `${winner} ha ganado!`;
+                gameResult.classList.remove('hidden');
+                restartButton.classList.remove('hidden');
+                menuButton.classList.remove('hidden');
+                if (winner !== 'Empate') {
+                    backgroundMusic.pause();
+                    winSound.play();
+                    winSound.onended = () => {
+                        backgroundMusic.play(); // Reproduce música de fondo nuevamente al terminar el sonido de victoria
+                    };
+                }
+            }
+
+            function botMove() {
+                const availableCells = board.map((cell, index) => cell === '' ? index : null).filter(v => v !== null);
+                if (availableCells.length > 0) {
+                    const move = availableCells[Math.floor(Math.random() * availableCells.length)];
+                    board[move] = 'O';
+                    renderBoard();
+                    clickSound.play(); // Reproduce sonido de clic para el movimiento del bot
+                    const winner = checkWinner();
+                    if (winner) {
+                        isGameActive = false;
+                        endGame(winner);
+                    } else {
+                        currentPlayer = 'X'; // Cambia el turno de vuelta al jugador
+                    }
+                }
+            }
+
+            playButton.addEventListener('click', () => {
+                clickSound.play();
+                startScreen.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            });
+
+            twoPlayersButton.addEventListener('click', () => {
+                clickSound.play();
+                mainMenu.classList.add('hidden');
+                symbolSelection.classList.remove('hidden');
+                isBotMode = false; // Modo 2 jugadores
+            });
+
+            botButton.addEventListener('click', () => {
+                clickSound.play();
+                mainMenu.classList.add('hidden');
+                symbolSelection.classList.remove('hidden');
+                isBotMode = true; // Modo Bot
+            });
+
+            settingsButton.addEventListener('click', () => {
+                clickSound.play();
+                mainMenu.classList.add('hidden');
+                settingsMenu.classList.remove('hidden');
+            });
+
+            backButton.addEventListener('click', () => {
+                clickSound.play();
+                settingsMenu.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            });
+
+            selectX.addEventListener('click', () => {
+                clickSound.play();
+                currentPlayer = 'X';
+                startGame();
+            });
+
+            selectO.addEventListener('click', () => {
+                clickSound.play();
+                currentPlayer = 'O';
+                startGame();
+            });
+
+            function startGame() {
+                symbolSelection.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                gameBoard.classList.remove('hidden');
+                resetGame();
+                backgroundMusic.play();
+            }
+
+            Array.from(gameBoard.children).forEach((cell, index) => {
+                cell.addEventListener('click', () => {
+                    playerMove(index);
+                });
+            });
+
+            restartButton.addEventListener('click', () => {
+                clickSound.play();
+                resetGame();
+            });
+
+            menuButton.addEventListener('click', () => {
+                clickSound.play();
+                gameScreen.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            });
+
+            musicVolume.addEventListener('input', (event) => {
+                backgroundMusic.volume = event.target.value / 100;
+            });
+
+            sfxVolume.addEventListener('input', (event) => {
+                clickSound.volume = event.target.value / 100;
+                winSound.volume = event.target.value / 100;
+            });
+
+            // Iniciar la música de fondo
+            backgroundMusic.volume = musicVolume.value / 100; // Inicia con el volumen configurado
+            backgroundMusic.play();
+        });
+    </script>
+</body>
+</html>
